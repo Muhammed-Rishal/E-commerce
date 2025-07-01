@@ -1,15 +1,17 @@
-import 'package:ecommerce/screens/home_screen.dart';
+import 'package:ecommerce/Provider/taskProvider.dart';
 import 'package:ecommerce/screens/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
     await Firebase.initializeApp();
-    runApp(const MyApp());
+    runApp(ChangeNotifierProvider(create: (context) => TaskProvider(),child: MyApp(),));
   } catch (e) {
     print("Firebase initialization error: $e");
     runApp(const FirebaseErrorApp());
@@ -17,14 +19,14 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+    const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'E Commerce',
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+      home: SplashScreen(),
       theme: ThemeData(
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black, fontSize: 24),

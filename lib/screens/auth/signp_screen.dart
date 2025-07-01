@@ -1,8 +1,7 @@
-import 'package:ecommerce/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/auth_services.dart';
+import '../home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -12,25 +11,28 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final formKey = GlobalKey<FormState>();
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final AuthService authService = AuthService();
-  String? errorMessage;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _auth = AuthService();
+  String? _errorMessage;
+  bool _isLoading = false;
 
-  Future<void> handleSignUp() async {
-    if (!formKey.currentState!.validate()) return;
+  Future<void> _handleSignUp() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() => errorMessage = null);
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
 
     try {
-      String email = emailController.text.trim();
-      String password = passwordController.text.trim();
+      final user = await _auth.signUp(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
 
-      User? user = await authService.signUp(email, password);
-
-      if (user != null) {
+      if (user != null && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -38,20 +40,23 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        errorMessage = e.message ?? 'Sign up failed';
+        _errorMessage = e.message ?? 'Sign up failed';
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'An unexpected error occurred';
+        _errorMessage = 'An unexpected error occurred';
       });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -69,10 +74,15 @@ class _SignupScreenState extends State<SignupScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Sign Up',
+                children: [
+                  const Text(
+                    "Sign Up",
                     style: TextStyle(color: Colors.white, fontSize: 40),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Create a new account",
+                    style: TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
               ),
@@ -83,146 +93,114 @@ class _SignupScreenState extends State<SignupScreen> {
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(60),
                     topLeft: Radius.circular(60),
+                    topRight: Radius.circular(60),
                   ),
                 ),
-                child: SingleChildScrollView(
+                child: Padding(
                   padding: const EdgeInsets.all(30),
                   child: Form(
-                    key: formKey,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 60),
-                        if (errorMessage != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            child: Text(
-                              errorMessage!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 16,
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 40),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color.fromRGBO(225, 95, 27, .3),
+                                  blurRadius: 20,
+                                  offset: Offset(0, 10),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(color: Colors.grey),
+                                    ),
+                                  ),
+                                  child: TextFormField(
+                                    controller: _emailController,
+                                    decoration: const InputDecoration(
+                                      hintText: "Email",
+                                      hintStyle: TextStyle(color: Colors.grey),
+                                      border: InputBorder.none,
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter your email';
+                                      }
+                                      if (!value.contains('@')) {
+                                        return 'Please enter a valid email';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  child: TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: true,
+                                    decoration: const InputDecoration(
+                                      hintText: "Password",
+                                      hintStyle: TextStyle(color: Colors.grey),
+                                      border: InputBorder.none,
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter a password';
+                                      }
+                                      if (value.length < 6) {
+                                        return 'Password must be at least 6 characters';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          if (_errorMessage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          _isLoading
+                              ? const CircularProgressIndicator()
+                              : MaterialButton(
+                            onPressed: _handleSignUp,
+                            height: 50,
+                            color: Colors.orange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                "Sign Up",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color.fromRGBO(225, 95, 27, .3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: <Widget>[
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  ),
-                                ),
-                                child: TextFormField(
-                                  controller: nameController,
-                                  decoration: const InputDecoration(
-                                    hintText: "Name",
-                                    hintStyle: TextStyle(color: Colors.grey),
-                                    border: InputBorder.none,
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your name';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  ),
-                                ),
-                                child: TextFormField(
-                                  controller: emailController,
-                                  decoration: const InputDecoration(
-                                    hintText: "Email",
-                                    hintStyle: TextStyle(color: Colors.grey),
-                                    border: InputBorder.none,
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your email';
-                                    }
-                                    if (!value.contains('@')) {
-                                      return 'Please enter a valid email';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  ),
-                                ),
-                                child: TextFormField(
-                                  controller: passwordController,
-                                  obscureText: true,
-                                  decoration: const InputDecoration(
-                                    hintText: "Password",
-                                    hintStyle: TextStyle(color: Colors.grey),
-                                    border: InputBorder.none,
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return "Please enter your password";
-                                    } else if (value.length < 6) {
-                                      return 'Password must be at least 6 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: handleSignUp,
-                            child: const Text(
-                              "Register",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

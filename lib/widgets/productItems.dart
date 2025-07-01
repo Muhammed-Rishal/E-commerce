@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ecommerce/screens/productdetail_screen.dart';
 import 'package:ecommerce/services/api_services.dart';
 import 'package:ecommerce/model/product_model.dart';
 import 'package:flutter/material.dart';
@@ -19,34 +20,47 @@ class ProductWidget extends StatelessWidget {
           return const Center(child: Text("No Products found."));
         } else {
           final products = snapshot.data!;
+
           return GridView.builder(
-            padding: const EdgeInsets.all(8), // Add padding
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(8),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // 2 columns
-              childAspectRatio: 0.7, // Adjust based on content (width/height)
-              crossAxisSpacing: 8, // Spacing between columns
-              mainAxisSpacing: 8, // Spacing between rows
+              crossAxisCount: 2,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
             ),
             itemCount: products.length,
             itemBuilder: (context, index) {
+              final product = products[index];
               return InkWell(
-                onTap: () {},
-                borderRadius: BorderRadius.circular(12), // Match Card's radius
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12), // Fixed: Use `BorderRadius` instead of `BorderRadiusGeometry`
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailScreen(productId: products[index].id),));
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  elevation: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: ClipRRect(
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
+                            top: Radius.circular(20),
                           ),
                           child: CachedNetworkImage(
-                            imageUrl: products[index].image ?? '',
+                            imageUrl: product.image ?? '',
                             width: double.infinity,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => const Center(
@@ -60,17 +74,27 @@ class ProductWidget extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
-                          products[index].title ?? 'No Title',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          product.title ?? 'No Title',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 8.0,
+                        ),
                         child: Text(
-                          '\₹${products[index].price?.toStringAsFixed(2) ?? '0.00'}',
-                          style: const TextStyle(color: Colors.green),
+                          '₹${product.price?.toStringAsFixed(2) ?? '0.00'}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ],
